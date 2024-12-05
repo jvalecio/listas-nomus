@@ -1,0 +1,25 @@
+{
+  "name": "addon-lista-nomus",
+  "version": "1.0.0",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "jvalecio",
+  "license": "ISC",
+  "description": "addon para o google chrome que automatiza a criação de listas no nomus",
+  "dependencies": {
+    "jquery": "^3.7.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jvalecio/listas-nomus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jvalecio/listas-nomus/issues"
+  },
+  "homepage": "https://github.com/jvalecio/listas-nomus#readme"
+}
