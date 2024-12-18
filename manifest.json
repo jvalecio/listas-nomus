@@ -5,8 +5,12 @@
     "description": "Automatiza a criação de listas de compras no ERP Nomus.",
     "permissions": [
       "scripting",
-      "activeTab"
+      "activeTab",
+      "tabs"
     ],
+    "background": {
+    "service_worker": "background.js"
+    },
     "host_permissions": [
       "https://lzenergia.nomus.com.br/*"
     ],

@@ -1,7 +1,7 @@
 
 
 //POST https://lzenergia.nomus.com.br/lzenergia/SolicitacaoCompraCadastro.do?metodo=Salvar
-
+let error_list = [];
 // Função que adiciona o botão "Criar lista de compras"
 function addButton() {
     console.log("Tentando adicionar o botão...");
@@ -47,6 +47,13 @@ function mostrarInputArquivo() {
     document.getElementById('input_arquivo_excel').click();
 }
 
+async function getCurrentTab() {
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    // `tab` will either be a `tabs.Tab` instance or `undefined`.
+    let [tab] = await chrome.tabs.query(queryOptions);
+    return tab;
+  }
+
 // Função para processar o arquivo Excel
 function processarArquivo() {
     console.log("Processando arquivo");
@@ -54,12 +61,14 @@ function processarArquivo() {
     const arquivo = document.getElementById("lista_compras").files[0];
     
     if (arquivo) {
+        promise_array = [];
         console.log("Arquivo not null");
         // Verifica se o arquivo é do tipo Excel
         if (arquivo.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || arquivo.type === "application/vnd.ms-excel") {
             const reader = new FileReader();
-            
-            reader.onload = function(e) {
+            error_list = [];
+
+            reader.onload = async function(e) {
                 // Usando a biblioteca XLSX para ler o conteúdo do Excel
                 const dados = e.target.result;
                 const workbook = XLSX.read(dados, {type: "binary"});
@@ -71,30 +80,25 @@ function processarArquivo() {
                 const dadosJson = XLSX.utils.sheet_to_json(primeiraPlanilha, {header: 1});
                 const data = dadosJson;
                 //console.log(dadosJson); // Exibe os dados no console (pode processar como precisar)
+                
                 for (let index = 1; index < data[0].length; index++) {
-
                     const product_id = data[0][index];
                     const quantity = data[4][index]
-                    //console.log("reading csv");
-                    //console.log(product_id);
-
                     
-                    //console.log(product_info)
-                    
-                    createPurchaseRequest(product_id, quantity);
+                    promise_array.push(createPurchaseRequest(product_id,quantity)); 
                 }
-                setTimeout(function() {
-                    document.getElementById("botao_exibir_todos").click();
-                }, 2000); // Delay is in milliseconds (2000ms = 2 seconds)
                 
-                
-                //const idElemento = "botao_botao.excluirsolicitacoescompra";
-                //form = jQuery('#' + idElemento.replaceAll('.', '\\.').replaceAll('=', '\\=').replaceAll('&', '\\&')).closest("form")[0];
-                //form.submit();
-                //location.reload();
+                await Promise.all(promise_array);
+                if(error_list.length>0){
+                    console.log(error_list.toString());
+                    window.confirm("ERRO AO CRIAR A SOLICITAÇÃO DE COMPRA DOS SEGUINTES ITENS: "+error_list.toString());
+                }else{
+                    window.confirm("SUCESSO");
+                    chrome.runtime.sendMessage({ action: "getActiveTab" }, (response) => {
+                        console.log("Active Tab:", response);
+                    });
+                }
             };
-
-            // Lê o arquivo como binário
             reader.readAsBinaryString(arquivo);
         } else {
             alert("Por favor, selecione um arquivo Excel válido (.xlsx ou .xls).");
@@ -123,7 +127,8 @@ async function getProductInfo(product_number) {
         return data[0]; // Return the first product info
     } catch (err) {
         console.error('Fetch Error :-S', err);
-        return null; // Return null in case of error
+        error_list.push(product_number);
+        return;
     }
 }
 
@@ -136,6 +141,7 @@ async function createPurchaseRequest(product_id, quantity) {
     // Handle the case where the product info is not available
     if (!product_info) {
         console.error("Failed to retrieve product info.");
+        error_list.push(product_id);
         return;
     }
 
@@ -179,7 +185,7 @@ async function createPurchaseRequest(product_id, quantity) {
             method: 'POST',
             body: formData
         });
-        const data = await response.json();
+        const data = response;
         console.log("Purchase request response:", data);
 
         // Example of using data from the response
@@ -188,6 +194,8 @@ async function createPurchaseRequest(product_id, quantity) {
         }
     } catch (err) {
         console.error('Fetch Error :-S', err);
+        error_list.push(product_id);
+        return;
     }
 }
 
